@@ -17,8 +17,13 @@ class LCD(object):
         self.__bottom = ''
 
         self.__lock = Lock()
+        self.__scroll_thread_run = True
         self.__scroll_thread = Thread(target=self.__scroll)
         self.__scroll_thread.start()
+
+    def disconnect(self):
+        self.turn_off()
+        self.__scroll_thread_run = False
 
     def turn_on(self):
         self.__lcd.dispaly = True
@@ -28,8 +33,13 @@ class LCD(object):
         self.__display = False
         self.__lcd.backlight = False
 
-    def set_message(self, top: str, bottom: str = ''):
+    def set_message(self, top: str = None, bottom: str = None):
         with self.__lock:
+            if top is None:
+                top = self.__top
+            if bottom is None:
+                bottom = self.__bottom
+
             self.__direction = 0
             self.__scroll_index = 0
             self.__top = top
@@ -39,13 +49,26 @@ class LCD(object):
             self.__lcd.clear()
             self.__lcd.message = message
 
+    def set_centre(self, top: str = None, bottom: str = None):
+        def centre(message: str):
+            diff = (16 - len(message)) // 2
+            return (' ' * diff) + message
+
+        if top is not None:
+            top = centre(top)
+
+        if bottom is not None:
+            bottom = centre(bottom)
+
+        self.set_message(top, bottom)
+
     def set_track(self, artist: str, title: str):
         top = f'{artist} - {title}'
 
         self.set_message(top)
 
     def __scroll(self):
-        while True:
+        while self.__scroll_thread_run:
             with self.__lock:
                 if len(self.__top) > 16:
                     if self.__direction == 0:

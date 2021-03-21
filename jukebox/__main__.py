@@ -3,6 +3,7 @@ import atexit
 import time
 
 from mpd.asyncio import MPDClient
+from jukebox.clock import Clock
 from jukebox.lcd import LCD
 
 
@@ -11,11 +12,13 @@ async def main():
 
     lcd = LCD()
     lcd.turn_on()
-    lcd.set_message('   Jukebox Pi   ')
-    atexit.register(lcd.turn_off)
+    atexit.register(lcd.disconnect)
 
     client = MPDClient()
-    atexit.register(client.close)
+    atexit.register(client.disconnect)
+
+    clock = Clock(lcd)
+    atexit.register(clock.stop)
 
     try:
         await client.connect('localhost', 6600)
@@ -26,13 +29,13 @@ async def main():
     print('Connected to MPD version ', client.mpd_version)
 
     current_status = await get_status(client)
-    show_track(lcd, {}, current_status)
+    show_track(lcd, clock, {}, current_status)
 
     async for _ in client.idle(['player']):
         status = await get_status(client)
         print(status)
 
-        show_track(lcd, current_status, status)
+        show_track(lcd, clock, current_status, status)
         current_status = status
 
 
@@ -53,10 +56,12 @@ async def get_status(client: MPDClient):
     }
 
 
-def show_track(lcd: LCD, current_status, status):
+def show_track(lcd: LCD, clock: Clock, current_status, status):
     state = status.get('state')
 
     if state in ['play', 'pause']:
+        clock.stop()
+
         # only update if it has changed, or we're going from stop
         if current_status.get('state') == 'stop' or not compare_keys(current_status, status, 'title', 'artist'):
             lcd.set_message('{} - {}'.format(
@@ -64,11 +69,12 @@ def show_track(lcd: LCD, current_status, status):
                 status.get('title', '')
             ))
     elif state == 'stop':
-        initial_message(lcd)
+        initial_message(lcd, clock)
 
 
-def initial_message(lcd: LCD):
-    lcd.set_message('   Jukebox Pi   ')
+def initial_message(lcd: LCD, clock: Clock):
+    lcd.set_centre('Jukebox Pi')
+    clock.start()
 
 
 def compare_keys(state1, state2, *args):
