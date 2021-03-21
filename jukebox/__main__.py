@@ -1,11 +1,18 @@
 import asyncio
 import atexit
+import time
 
 from mpd.asyncio import MPDClient
+from jukebox.lcd import LCD
 
 
 async def main():
     print('Jukebox')
+
+    lcd = LCD()
+    lcd.turn_on()
+    lcd.set_message('   Jukebox Pi   ')
+    atexit.register(lcd.turn_off)
 
     client = MPDClient()
     atexit.register(client.close)
@@ -21,6 +28,7 @@ async def main():
     async for _ in client.idle(['player']):
         status = await get_status(client)
         print(status)
+        lcd.set_message(status.get('title'))
 
 
 async def get_status(client: MPDClient):
