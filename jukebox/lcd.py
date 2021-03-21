@@ -11,10 +11,14 @@ class LCD(object):
         self.__lcd.clear()
 
     def turn_on(self):
+        self.__lcd.dispaly = True
         self.__lcd.backlight = True
 
     def turn_off(self):
+        self.__display = False
         self.__lcd.backlight = False
 
-    def set_message(self, message: str):
+    def set_message(self, top: str, bottom: str = ''):
+        message = f'{top:<15}\n{bottom:<15}'
+        self.__lcd.clear()
         self.__lcd.message = message

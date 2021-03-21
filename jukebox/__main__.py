@@ -25,10 +25,23 @@ async def main():
 
     print('Connected to MPD version ', client.mpd_version)
 
+    current_status = {}
     async for _ in client.idle(['player']):
         status = await get_status(client)
         print(status)
-        lcd.set_message(status.get('title'))
+
+        state = status.get('state')
+        if state in ['play', 'pause']:
+            # only update if it has changed, or we're going from stop
+            if current_status.get('state') == 'stop' or not compare_keys(current_status, status, 'title', 'artist'):
+                lcd.set_message('{} - {}'.format(
+                    status.get('artist', ''),
+                    status.get('title', '')
+                ))
+        elif state == 'stop':
+            initial_message(lcd)
+
+        current_status = status
 
 
 async def get_status(client: MPDClient):
@@ -38,7 +51,7 @@ async def get_status(client: MPDClient):
     sample_rate, bits, channels = status.get('audio', '?:?:?').split(':', 3)
 
     return {
-        'status': status.get('state'),
+        'state': status.get('state'),
         'title': current_song.get('title'),
         'artist': current_song.get('artist'),
         'album': current_song.get('album'),
@@ -46,6 +59,20 @@ async def get_status(client: MPDClient):
         'bits': bits,
         'channels': channels
     }
+
+
+def initial_message(lcd):
+    lcd.set_message('   Jukebox Pi   ')
+
+
+def compare_keys(state1, state2, *args):
+    match = True
+
+    for arg in args:
+        match = match and state1.get(arg) == state2.get(arg)
+
+    return match
+
 
 if __name__ == '__main__':
     asyncio.get_event_loop().run_until_complete(main())
