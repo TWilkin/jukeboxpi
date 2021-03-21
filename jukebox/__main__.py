@@ -43,16 +43,16 @@ async def get_status(client: MPDClient):
     status = await client.status()
     current_song = await client.currentsong()
 
-    sample_rate, bits, channels = status.get('audio', '?:?:?').split(':', 3)
+    sample_rate, bits, channels = status.get('audio', '0:0:0').split(':', 3)
 
     return {
         'state': status.get('state'),
         'title': current_song.get('title'),
         'artist': current_song.get('artist'),
         'album': current_song.get('album'),
-        'sample_rate': sample_rate,
-        'bits': bits,
-        'channels': channels
+        'sample_rate': int(sample_rate) / 1000,
+        'bits': int(bits),
+        'channels': int(channels)
     }
 
 
@@ -67,7 +67,10 @@ def show_track(lcd: LCD, clock: Clock, current_status, status):
             lcd.set_message('{} - {}'.format(
                 status.get('artist', ''),
                 status.get('title', '')
-            ), '')
+            ), '{:.1f}kHz {}b'.format(
+                status.get('sample_rate', 0),
+                status.get('bits', 0)
+            ))
     elif state == 'stop':
         initial_message(lcd, clock)
 
