@@ -62,10 +62,24 @@ class LCD(object):
 
         self.set_message(top, bottom)
 
-    def set_track(self, artist: str, title: str):
-        top = f'{artist} - {title}'
+    def overwrite(self, text: str, column: int, row: int):
+        def update(old: str):
+            return '{}{}{}'.format(old[:column], text, old[column + len(text):])
 
-        self.set_message(top)
+        if row == 0:
+            self.__top = update(self.__top)
+        else:
+            self.__bottom = update(self.__bottom)
+
+        for char in text:
+            self.__lcd.cursor_position(column, row)
+
+            self.__lcd._write8(ord(char), True)
+
+            column += 1
+            if column == 16:
+                break
+        self.__lcd.cursor_position(0, 0)
 
     def __scroll(self):
         while self.__scroll_thread_run:

@@ -67,7 +67,7 @@ def show_track(lcd: LCD, clock: Clock, current_status, status):
             lcd.set_message('{} - {}'.format(
                 status.get('artist', ''),
                 status.get('title', '')
-            ))
+            ), '')
     elif state == 'stop':
         initial_message(lcd, clock)
 
