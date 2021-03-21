@@ -12,7 +12,7 @@ async def main():
 
     lcd = LCD()
     lcd.turn_on()
-    atexit.register(lcd.disconnect)
+    atexit.register(lcd.stop)
 
     client = MPDClient()
     atexit.register(client.disconnect)

@@ -21,19 +21,24 @@ class LCD(object):
         self.__scroll_thread = Thread(target=self.__scroll)
         self.__scroll_thread.start()
 
-    def disconnect(self):
+    def stop(self):
         self.turn_off()
         self.__scroll_thread_run = False
 
     def turn_on(self):
-        self.__lcd.dispaly = True
-        self.__lcd.backlight = True
+        with self.__lock:
+            self.__lcd.display = True
+            self.__lcd.color = [0, 0, 255]
 
     def turn_off(self):
-        self.__display = False
-        self.__lcd.backlight = False
+        with self.__lock:
+            self.__lcd.display = False
+            self.__lcd.color = [0, 0, 0]
 
     def set_message(self, top: str = None, bottom: str = None):
+        if not self.__lcd.display:
+            self.turn_on()
+
         with self.__lock:
             if top is None:
                 top = self.__top
