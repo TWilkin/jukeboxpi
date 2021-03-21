@@ -25,22 +25,14 @@ async def main():
 
     print('Connected to MPD version ', client.mpd_version)
 
-    current_status = {}
+    current_status = await get_status(client)
+    show_track(lcd, {}, current_status)
+
     async for _ in client.idle(['player']):
         status = await get_status(client)
         print(status)
 
-        state = status.get('state')
-        if state in ['play', 'pause']:
-            # only update if it has changed, or we're going from stop
-            if current_status.get('state') == 'stop' or not compare_keys(current_status, status, 'title', 'artist'):
-                lcd.set_message('{} - {}'.format(
-                    status.get('artist', ''),
-                    status.get('title', '')
-                ))
-        elif state == 'stop':
-            initial_message(lcd)
-
+        show_track(lcd, current_status, status)
         current_status = status
 
 
@@ -61,7 +53,21 @@ async def get_status(client: MPDClient):
     }
 
 
-def initial_message(lcd):
+def show_track(lcd: LCD, current_status, status):
+    state = status.get('state')
+
+    if state in ['play', 'pause']:
+        # only update if it has changed, or we're going from stop
+        if current_status.get('state') == 'stop' or not compare_keys(current_status, status, 'title', 'artist'):
+            lcd.set_message('{} - {}'.format(
+                status.get('artist', ''),
+                status.get('title', '')
+            ))
+    elif state == 'stop':
+        initial_message(lcd)
+
+
+def initial_message(lcd: LCD):
     lcd.set_message('   Jukebox Pi   ')
 
 
