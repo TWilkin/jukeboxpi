@@ -22,19 +22,27 @@ class Clock(object):
         self.__thread = None
 
     def __run(self):
-        current_time = time.strftime('%H:%M', time.localtime())
+        current_time = time.strftime('%H:%M:%S', time.localtime())
         self.__lcd.set_centre(bottom=current_time)
 
         sleep_counter = 0
+        interval = 0.3
 
+        previous = current_time
         while self.__running:
-            current_time = time.strftime('%H:%M', time.localtime())
+            current_time = time.strftime('%H:%M:%S', time.localtime())
 
-            self.__lcd.overwrite(current_time, 5, 1)
+            diffs = [i for i in range(len(previous))
+                     if previous[i] != current_time[i]]
 
-            time.sleep(1)
+            for diff in diffs:
+                self.__lcd.overwrite(current_time[diff], 4 + diff, 1)
 
-            sleep_counter += 1
-            if sleep_counter == self.__sleep_after:
+            time.sleep(interval)
+
+            sleep_counter += interval
+            if sleep_counter >= self.__sleep_after:
                 self.__lcd.turn_off()
                 self.stop()
+
+            previous = current_time
