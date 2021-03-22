@@ -45,19 +45,17 @@ class LCD(object):
         ]
 
         self.__lock = Lock()
-        self.__scroll_thread_run = True
         self.__scroll_thread = Thread(target=self.__scroll)
+        self.__scroll_thread.daemon = True
         self.__scroll_thread.start()
 
         self.__button_callback = button_callback
-        self.__button_thread_run = True
         self.__button_thread = Thread(target=self.__button)
+        self.__button_thread.daemon = True
         self.__button_thread.start()
 
     def stop(self):
         self.turn_off()
-        self.__scroll_thread_run = False
-        self.__button_thread_run = False
 
     def turn_on(self):
         with self.__lock:
@@ -120,7 +118,7 @@ class LCD(object):
 
     def __scroll(self):
         async def scroll():
-            while self.__scroll_thread_run:
+            while True:
                 with self.__lock:
                     for row in LCDRow:
                         current = self.__message[row.value]
@@ -149,7 +147,7 @@ class LCD(object):
 
     def __button(self):
         async def listener():
-            while self.__button_thread_run:
+            while True:
                 if self.__lcd.select_button:
                     await self.__button_callback(Button.SELECT)
 

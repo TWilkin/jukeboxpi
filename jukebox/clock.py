@@ -16,6 +16,7 @@ class Clock(object):
         if self.__running == False:
             self.__running = True
             self.__thread = Thread(target=self.__run)
+            self.__thread.daemon = True
             self.__thread.start()
 
     def stop(self):

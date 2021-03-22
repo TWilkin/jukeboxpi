@@ -1,6 +1,8 @@
 import asyncio
 import atexit
 import os
+import signal
+import sys
 import time
 
 from mpd.asyncio import MPDClient
@@ -10,6 +12,8 @@ from jukebox.lcd import Button, LCD, LCDRow
 
 async def main():
     print('Jukebox Pi')
+
+    signal.signal(signal.SIGINT, signal_handler)
 
     client = MPDClient()
     atexit.register(client.disconnect)
@@ -113,6 +117,11 @@ def compare_keys(state1, state2, *args):
         match = match and state1.get(arg) == state2.get(arg)
 
     return match
+
+
+def signal_handler(signal, frame):
+    print('Shutting down')
+    sys.exit(0)
 
 
 if __name__ == '__main__':
