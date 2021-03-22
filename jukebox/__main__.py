@@ -1,5 +1,6 @@
 import asyncio
 import atexit
+import os
 import time
 
 from mpd.asyncio import MPDClient
@@ -45,6 +46,8 @@ async def get_status(client: MPDClient):
 
     sample_rate, bits, channels = status.get('audio', '0:0:0').split(':', 3)
 
+    _, extension = os.path.splitext(current_song.get('file', 'a.nothing'))
+
     return {
         'state': status.get('state'),
         'title': current_song.get('title'),
@@ -52,7 +55,8 @@ async def get_status(client: MPDClient):
         'album': current_song.get('album'),
         'sample_rate': int(sample_rate) / 1000,
         'bits': int(bits),
-        'channels': int(channels)
+        'channels': int(channels),
+        'format': extension[1:].upper() if extension != '.nothing' else None
     }
 
 
@@ -69,7 +73,8 @@ def show_track(lcd: LCD, clock: Clock, current_status, status):
                 status.get('title', '')
             ), LCDRow.TOP, True)
 
-            lcd.write_message('{:.1f}kHz {}b'.format(
+            lcd.write_message('{} {:.1f}kHz {}b'.format(
+                status.get('format', '?'),
                 status.get('sample_rate', 0),
                 status.get('bits', 0)
             ), LCDRow.BOTTOM, True)
