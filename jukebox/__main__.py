@@ -5,18 +5,18 @@ import time
 
 from mpd.asyncio import MPDClient
 from jukebox.clock import Clock
-from jukebox.lcd import LCD, LCDRow
+from jukebox.lcd import Button, LCD, LCDRow
 
 
 async def main():
-    print('Jukebox')
-
-    lcd = LCD()
-    lcd.turn_on()
-    atexit.register(lcd.stop)
+    print('Jukebox Pi')
 
     client = MPDClient()
     atexit.register(client.disconnect)
+
+    lcd = LCD(make_callback(client))
+    lcd.turn_on()
+    atexit.register(lcd.stop)
 
     clock = Clock(lcd)
     atexit.register(clock.stop)
@@ -58,6 +58,22 @@ async def get_status(client: MPDClient):
         'channels': int(channels),
         'format': extension[1:].upper() if extension != '.nothing' else None
     }
+
+
+def make_callback(client: MPDClient):
+    async def button_callback(button: Button):
+        print(button)
+
+        if button == Button.LEFT:
+            client.previous()
+        elif button == Button.RIGHT:
+            client.next()
+        elif button == Button.UP:
+            client.pause()
+        elif button == Button.DOWN:
+            client.stop()
+
+    return button_callback
 
 
 def show_track(lcd: LCD, clock: Clock, current_status, status):

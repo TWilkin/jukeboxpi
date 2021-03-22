@@ -1,3 +1,4 @@
+import asyncio
 import board
 import busio
 import time
@@ -10,6 +11,14 @@ from threading import Lock, Thread
 class LCDRow(Enum):
     TOP = 0
     BOTTOM = 1
+
+
+class Button(Enum):
+    SELECT = 0
+    UP = 1
+    DOWN = 2
+    LEFT = 3
+    RIGHT = 4
 
 
 class LCDRowData(object):
@@ -26,7 +35,7 @@ class LCDRowData(object):
 
 
 class LCD(object):
-    def __init__(self):
+    def __init__(self, button_callback):
         i2c = busio.I2C(board.SCL, board.SDA)
         self.__lcd = Character_LCD_RGB_I2C(i2c, 16, 2)
         self.__lcd.columns = 40
@@ -40,6 +49,11 @@ class LCD(object):
         self.__scroll_thread_run = True
         self.__scroll_thread = Thread(target=self.__scroll)
         self.__scroll_thread.start()
+
+        self.__button_callback = button_callback
+        self.__button_thread_run = True
+        self.__button_thread = Thread(target=self.__button)
+        self.__button_thread.start()
 
     def stop(self):
         self.turn_off()
@@ -125,3 +139,29 @@ class LCD(object):
                                 current.direction = True
 
             time.sleep(0.5)
+
+    def __button(self):
+        async def listener():
+            while self.__button_thread_run:
+                if self.__lcd.select_button:
+                    await self.__button_callback(Button.SELECT)
+
+                if self.__lcd.up_button:
+                    await self.__button_callback(Button.UP)
+
+                if self.__lcd.down_button:
+                    await self.__button_callback(Button.DOWN)
+
+                if self.__lcd.left_button:
+                    await self.__button_callback(Button.LEFT)
+
+                if self.__lcd.right_button:
+                    await self.__button_callback(Button.RIGHT)
+
+                await asyncio.sleep(0.3)
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        loop.run_until_complete(listener())
+        loop.close()
