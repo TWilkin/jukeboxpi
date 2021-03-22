@@ -67,16 +67,18 @@ def show_track(lcd: LCD, clock: Clock, current_status, status):
             lcd.write_message('{} - {}'.format(
                 status.get('artist', ''),
                 status.get('title', '')
-            ), LCDRow.TOP)
+            ), LCDRow.TOP, True)
+
             lcd.write_message('{:.1f}kHz {}b'.format(
                 status.get('sample_rate', 0),
                 status.get('bits', 0)
-            ), LCDRow.BOTTOM)
+            ), LCDRow.BOTTOM, True)
     elif state == 'stop':
         initial_message(lcd, clock)
 
 
 def initial_message(lcd: LCD, clock: Clock):
+    lcd.clear()
     lcd.write_centre('Jukebox Pi', LCDRow.TOP)
     clock.start()
 
