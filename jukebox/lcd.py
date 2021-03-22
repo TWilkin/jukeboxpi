@@ -1,7 +1,6 @@
 import asyncio
 import board
 import busio
-import time
 
 from adafruit_character_lcd.character_lcd_rgb_i2c import Character_LCD_RGB_I2C
 from enum import Enum
@@ -119,26 +118,33 @@ class LCD(object):
                     self.__lcd._write8(ord(char), True)
 
     def __scroll(self):
-        while self.__scroll_thread_run:
-            with self.__lock:
-                for row in LCDRow:
-                    current = self.__message[row.value]
+        async def scroll():
+            while self.__scroll_thread_run:
+                with self.__lock:
+                    for row in LCDRow:
+                        current = self.__message[row.value]
 
-                    if current.scroll:
-                        if current.direction:
-                            self.__lcd.move_left()
-                            current.offset += 1
+                        if current.scroll:
+                            if current.direction:
+                                self.__lcd.move_left()
+                                current.offset += 1
 
-                            if current.offset == len(current.message) - 16 + 2:
-                                current.direction = False
-                        else:
-                            self.__lcd.move_right()
-                            current.offset -= 1
+                                if current.offset == len(current.message) - 16 + 2:
+                                    current.direction = False
+                            else:
+                                self.__lcd.move_right()
+                                current.offset -= 1
 
-                            if current.offset == -2:
-                                current.direction = True
+                                if current.offset == -2:
+                                    current.direction = True
 
-            time.sleep(0.5)
+                await asyncio.sleep(0.5)
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        loop.run_until_complete(scroll())
+        loop.close()
 
     def __button(self):
         async def listener():
