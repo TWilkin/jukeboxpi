@@ -2,7 +2,7 @@ import time
 
 from threading import Thread
 
-from jukebox.lcd import LCD
+from jukebox.lcd import LCD, LCDRow
 
 
 class Clock(object):
@@ -23,20 +23,15 @@ class Clock(object):
 
     def __run(self):
         current_time = time.strftime('%H:%M:%S', time.localtime())
-        self.__lcd.set_centre(bottom=current_time)
+        self.__lcd.write_centre(current_time, LCDRow.BOTTOM)
 
         sleep_counter = 0
         interval = 0.3
 
-        previous = current_time
         while self.__running:
             current_time = time.strftime('%H:%M:%S', time.localtime())
 
-            diffs = [i for i in range(len(previous))
-                     if previous[i] != current_time[i]]
-
-            for diff in diffs:
-                self.__lcd.overwrite(current_time[diff], 4 + diff, 1)
+            self.__lcd.write_centre(current_time, LCDRow.BOTTOM)
 
             time.sleep(interval)
 
@@ -44,5 +39,3 @@ class Clock(object):
             if sleep_counter >= self.__sleep_after:
                 self.__lcd.turn_off()
                 self.stop()
-
-            previous = current_time
