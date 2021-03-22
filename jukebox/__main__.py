@@ -84,6 +84,8 @@ def show_track(lcd: LCD, clock: Clock, current_status, status):
 
         # only update if it has changed, or we're going from stop
         if current_status.get('state') == 'stop' or not compare_keys(current_status, status, 'title', 'artist'):
+            lcd.clear()
+
             lcd.write_message('{} - {}'.format(
                 status.get('artist', ''),
                 status.get('title', '')
