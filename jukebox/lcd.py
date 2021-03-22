@@ -57,6 +57,7 @@ class LCD(object):
     def stop(self):
         self.turn_off()
         self.__scroll_thread_run = False
+        self.__button_thread_run = False
 
     def turn_on(self):
         with self.__lock:
