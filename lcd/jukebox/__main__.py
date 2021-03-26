@@ -14,6 +14,7 @@ async def main():
     print('Jukebox Pi')
 
     signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     client = MPDClient()
     atexit.register(client.disconnect)
