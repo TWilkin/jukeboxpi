@@ -24,25 +24,22 @@ class LCDPageData(object):
     top: str
     bottom: str
     scroll: bool
-    direction: bool
     offset: int
 
-    def __init__(self, top: str = ' ' * 16, bottom: str = ' ' * 16, scroll: bool = False):
+    def __init__(self, top: str = ' ' * 16, bottom: str = ' ' * 16, scroll: bool = True):
         self.top = top
         self.bottom = bottom
         self.scroll = scroll
-        self.direction = True
         self.offset = 0
 
 
 class LCD(object):
-    def __init__(self, button_callback):
+    def __init__(self, button_callback, pages: int):
         i2c = busio.I2C(board.SCL, board.SDA)
         self.__lcd = Character_LCD_RGB_I2C(i2c, 16, 2)
 
-        self.__message = [
-            LCDPageData(),
-        ]
+        self.__pages = pages
+        self.__message = [LCDPageData() for _ in range(0, pages)]
         self.__current_page = 0
 
         self.__lock = Lock()
@@ -54,6 +51,25 @@ class LCD(object):
         self.__button_thread = Thread(target=self.__button)
         self.__button_thread.daemon = True
         self.__button_thread.start()
+
+    @property
+    def page(self):
+        return self.__current_page
+
+    @page.setter
+    def page(self, new_page: int):
+        with self.__lock:
+            self.__lcd.clear()
+
+        # emulate circular list of pages
+        if new_page >= self.__pages:
+            new_page = 0
+
+        self.__current_page = new_page
+        self.__write_current_page()
+
+    def next_page(self):
+        self.page = self.__current_page + 1
 
     def stop(self):
         self.turn_off()
@@ -72,33 +88,32 @@ class LCD(object):
         with self.__lock:
             self.__lcd.clear()
 
-            self.__message = [
-                LCDPageData(),
-            ]
+            self.__message = [LCDPageData() for _ in range(0, self.__pages)]
 
-    def write_message(self, page: int, top: str = '', bottom: str = '', scroll: bool = True):
+    def write_message(self, page: int, top: str = '', bottom: str = ''):
         top = self.__fix_length(top)
         bottom = self.__fix_length(bottom)
 
+        if max(len(top), len(bottom)) > self.__lcd.columns:
+            scroll = True
+        else:
+            scroll = False
+
         with self.__lock:
-            if not self.__lcd.display:
-                self.turn_on()
-
-            if self.__current_page == page:
-                self.__lcd.cursor_position(0, 0)
-                self.__lcd.message = f'{top}\n{bottom}'
-
             self.__message[page] = LCDPageData(
                 top,
                 bottom,
                 scroll
             )
 
+        if self.__current_page == page:
+            self.__write_current_page()
+
     def write_centre(self, page: int, top: str = '', bottom: str = ''):
         top = self.__centre(top)
         bottom = self.__centre(bottom)
 
-        self.write_message(page, top, bottom, False)
+        self.write_message(page, top, bottom)
 
     def overwrite(self, page: int, row: LCDRow, text: str):
         text = self.__fix_length(text)
@@ -135,6 +150,14 @@ class LCD(object):
 
         self.overwrite(page, row, text)
 
+    def __write_current_page(self):
+        with self.__lock:
+            if not self.__lcd.display:
+                self.turn_on()
+
+            self.__lcd.cursor_position(0, 0)
+            self.__lcd.message = f'{self.__message[self.__current_page].top}\n{self.__message[self.__current_page].bottom}'
+
     def __centre(self, line: str):
         diff = (self.__lcd.columns - len(line)) // 2
         line = (' ' * diff) + line
@@ -156,9 +179,8 @@ class LCD(object):
                     current = self.__message[self.__current_page]
 
                     if current.scroll:
-                        if current.direction:
-                            self.__lcd.move_left()
-                            current.offset += 1
+                        self.__lcd.move_left()
+                        current.offset += 1
 
                 await asyncio.sleep(0.5)
 
@@ -172,19 +194,19 @@ class LCD(object):
         async def listener():
             while True:
                 if self.__lcd.select_button:
-                    await self.__button_callback(Button.SELECT)
+                    await self.__button_callback(self, Button.SELECT)
 
                 if self.__lcd.up_button:
-                    await self.__button_callback(Button.UP)
+                    await self.__button_callback(self, Button.UP)
 
                 if self.__lcd.down_button:
-                    await self.__button_callback(Button.DOWN)
+                    await self.__button_callback(self, Button.DOWN)
 
                 if self.__lcd.left_button:
-                    await self.__button_callback(Button.LEFT)
+                    await self.__button_callback(self, Button.LEFT)
 
                 if self.__lcd.right_button:
-                    await self.__button_callback(Button.RIGHT)
+                    await self.__button_callback(self, Button.RIGHT)
 
                 await asyncio.sleep(0.3)
 

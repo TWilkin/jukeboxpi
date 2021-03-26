@@ -18,7 +18,7 @@ async def main():
     client = MPDClient()
     atexit.register(client.disconnect)
 
-    lcd = LCD(make_callback(client))
+    lcd = LCD(make_callback(client), 3)
     lcd.turn_on()
     atexit.register(lcd.stop)
 
@@ -65,7 +65,7 @@ async def get_status(client: MPDClient):
 
 
 def make_callback(client: MPDClient):
-    async def button_callback(button: Button):
+    async def button_callback(lcd: LCD, button: Button):
         print(button)
 
         if button == Button.LEFT:
@@ -76,6 +76,8 @@ def make_callback(client: MPDClient):
             client.pause()
         elif button == Button.DOWN:
             client.stop()
+        elif button == Button.SELECT:
+            lcd.next_page()
 
     return button_callback
 
@@ -93,8 +95,22 @@ def show_track(lcd: LCD, clock: Clock, current_status, status):
             lcd.write_message(
                 0,
                 status.get('title', ''),
-                status.get('artist', ''),
-                True
+                status.get('artist', '')
+            )
+
+            lcd.write_message(
+                1,
+                status.get('album', ''),
+                status.get('artist', '')
+            )
+
+            lcd.write_message(
+                2,
+                status.get('format', '?'),
+                '{:.1f}kHz {}-bit'.format(
+                    status.get('sample_rate', 0),
+                    status.get('bits', 0)
+                )
             )
     elif state == 'stop':
         initial_message(lcd, clock)
