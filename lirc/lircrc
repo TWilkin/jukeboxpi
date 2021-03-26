@@ -1,0 +1,41 @@
+begin
+	prog = irexec
+	button = KEY_PLAY
+	config = mpc toggle
+	repeat = 0
+end
+
+begin
+        prog = irexec
+        button = KEY_FASTFORWARD
+        config = mpc next
+        repeat = 0
+end
+
+begin
+        prog = irexec
+        button = KEY_REWIND
+        config = mpc prev
+        repeat = 0
+end
+
+begin
+        prog = irexec
+        button = KEY_KPPLUS
+        config = mpc toggle
+        repeat = 0
+end
+
+begin
+        prog = irexec
+        button = KEY_KPMINUS
+        config = mpc stop
+        repeat = 0
+end
+
+begin
+        prog = irexec
+        button = KEY_MENU
+        config = mpc update
+        repeat = 0
+end
