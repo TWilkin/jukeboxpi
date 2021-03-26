@@ -7,7 +7,7 @@ import time
 
 from mpd.asyncio import MPDClient
 from jukebox.clock import Clock
-from jukebox.lcd import Button, LCD, LCDRow
+from jukebox.lcd import Button, LCD
 
 
 async def main():
@@ -90,23 +90,19 @@ def show_track(lcd: LCD, clock: Clock, current_status, status):
         if current_status.get('state') == 'stop' or not compare_keys(current_status, status, 'title', 'artist'):
             lcd.clear()
 
-            lcd.write_message('{} - {}'.format(
+            lcd.write_message(
+                0,
+                status.get('title', ''),
                 status.get('artist', ''),
-                status.get('title', '')
-            ), LCDRow.TOP, True)
-
-            lcd.write_message('{} {:.1f}kHz {}b'.format(
-                status.get('format', '?'),
-                status.get('sample_rate', 0),
-                status.get('bits', 0)
-            ), LCDRow.BOTTOM, True)
+                True
+            )
     elif state == 'stop':
         initial_message(lcd, clock)
 
 
 def initial_message(lcd: LCD, clock: Clock):
     lcd.clear()
-    lcd.write_centre('Jukebox Pi', LCDRow.TOP)
+    lcd.write_centre(0, 'Jukebox Pi')
     clock.start()
 
 

@@ -20,14 +20,16 @@ class Button(Enum):
     RIGHT = 4
 
 
-class LCDRowData(object):
-    message: str
+class LCDPageData(object):
+    top: str
+    bottom: str
     scroll: bool
     direction: bool
     offset: int
 
-    def __init__(self, message: str = ' ' * 16, scroll: bool = False):
-        self.message = message
+    def __init__(self, top: str = ' ' * 16, bottom: str = ' ' * 16, scroll: bool = False):
+        self.top = top
+        self.bottom = bottom
         self.scroll = scroll
         self.direction = True
         self.offset = 0
@@ -37,12 +39,11 @@ class LCD(object):
     def __init__(self, button_callback):
         i2c = busio.I2C(board.SCL, board.SDA)
         self.__lcd = Character_LCD_RGB_I2C(i2c, 16, 2)
-        self.__lcd.columns = 40
 
         self.__message = [
-            LCDRowData(),
-            LCDRowData()
+            LCDPageData(),
         ]
+        self.__current_page = 0
 
         self.__lock = Lock()
         self.__scroll_thread = Thread(target=self.__scroll)
@@ -60,7 +61,7 @@ class LCD(object):
     def turn_on(self):
         with self.__lock:
             self.__lcd.display = True
-            self.__lcd.color = [0, 0, 255]
+            self.__lcd.color = [0, 0, 128]
 
     def turn_off(self):
         with self.__lock:
@@ -72,70 +73,101 @@ class LCD(object):
             self.__lcd.clear()
 
             self.__message = [
-                LCDRowData(),
-                LCDRowData()
+                LCDPageData(),
             ]
 
-    def write_message(self, text: str, row: LCDRow, scroll: bool):
-        if len(text) < 16:
-            text = f'{text:<15}'
+    def write_message(self, page: int, top: str = '', bottom: str = '', scroll: bool = True):
+        top = self.__fix_length(top)
+        bottom = self.__fix_length(bottom)
 
-        self.__overwrite(text, row)
-
-        with self.__lock:
-            self.__message[row.value] = LCDRowData(
-                text,
-                scroll and len(text) > 16
-            )
-
-    def write_centre(self, text: str, row: LCDRow):
-        diff = (16 - len(text)) // 2
-        text = (' ' * diff) + text
-
-        self.write_message(text, row, False)
-
-    def __overwrite(self, text: str, row: LCDRow):
         with self.__lock:
             if not self.__lcd.display:
                 self.turn_on()
 
-            # update only the characters that have changed
-            original_len = len(self.__message[row.value].message)
-            new_len = len(text)
-            for i in range(max(original_len, new_len)):
-                char = ' '
-                changed = True
+            if self.__current_page == page:
+                self.__lcd.cursor_position(0, 0)
+                self.__lcd.message = f'{top}\n{bottom}'
 
-                if i < new_len:
-                    char = text[i]
+            self.__message[page] = LCDPageData(
+                top,
+                bottom,
+                scroll
+            )
 
-                    if i < original_len:
-                        changed = self.__message[row.value].message[i] != text[i]
+    def write_centre(self, page: int, top: str = '', bottom: str = ''):
+        top = self.__centre(top)
+        bottom = self.__centre(bottom)
 
-                if changed:
-                    self.__lcd.cursor_position(i, row.value)
-                    self.__lcd._write8(ord(char), True)
+        self.write_message(page, top, bottom, False)
+
+    def overwrite(self, page: int, row: LCDRow, text: str):
+        text = self.__fix_length(text)
+
+        with self.__lock:
+            if self.__current_page == page:
+                message = self.__message[page].top if row == LCDRow.TOP else self.__message[page].bottom
+
+                # update only the characters that have changed
+                original_len = len(message)
+                new_len = len(text)
+                for i in range(max(original_len, new_len)):
+                    char = ' '
+                    changed = True
+
+                    if i < new_len:
+                        char = text[i]
+
+                        if i < original_len:
+                            changed = message[i] != text[i]
+
+                    if changed:
+                        self.__lcd.cursor_position(i, row.value)
+                        self.__lcd._write8(ord(char), True)
+
+            # update the message
+            if row == LCDRow.TOP:
+                self.__message[page].top = text
+            else:
+                self.__message[page].bottom = text
+
+    def overwrite_centre(self, page: int, row: LCDRow, text: str):
+        text = self.__centre(text)
+
+        self.overwrite(page, row, text)
+
+    def __centre(self, line: str):
+        diff = (self.__lcd.columns - len(line)) // 2
+        line = (' ' * diff) + line
+        return line
+
+    def __fix_length(self, line: str):
+        buffer = 40 - 2 - len('...')
+
+        # ensure we don't overflow per-line character buffer
+        if len(line) > buffer:
+            line = f'{line[:buffer]}...'
+
+        return line
 
     def __scroll(self):
         async def scroll():
             while True:
                 with self.__lock:
-                    for row in LCDRow:
-                        current = self.__message[row.value]
+                    current = self.__message[self.__current_page]
 
-                        if current.scroll:
-                            if current.direction:
-                                self.__lcd.move_left()
-                                current.offset += 1
+                    if current.scroll:
+                        if current.direction:
+                            self.__lcd.move_left()
+                            current.offset += 1
 
-                                if current.offset == len(current.message) - 16 + 2:
-                                    current.direction = False
-                            else:
-                                self.__lcd.move_right()
-                                current.offset -= 1
+                            if current.offset == max(len(current.top), len(current.bottom)) - self.__lcd.columns + 2:
+                                current.direction = False
+                        else:
+                            self.__lcd.move_right()
+                            current.offset -= 1
 
-                                if current.offset == -2:
-                                    current.direction = True
+                            if current.offset == -2:
+                                current.direction = True
 
                 await asyncio.sleep(0.5)
 

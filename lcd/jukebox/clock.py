@@ -26,7 +26,7 @@ class Clock(object):
     def __run(self):
         async def update_time():
             current_time = time.strftime('%H:%M:%S', time.localtime())
-            self.__lcd.write_centre(current_time, LCDRow.BOTTOM)
+            self.__lcd.overwrite_centre(0, LCDRow.BOTTOM, current_time)
 
             sleep_counter = 0
             interval = 0.3
@@ -34,7 +34,7 @@ class Clock(object):
             while self.__running:
                 current_time = time.strftime('%H:%M:%S', time.localtime())
 
-                self.__lcd.write_centre(current_time, LCDRow.BOTTOM)
+                self.__lcd.overwrite_centre(0, LCDRow.BOTTOM, current_time)
 
                 await asyncio.sleep(interval)
 
