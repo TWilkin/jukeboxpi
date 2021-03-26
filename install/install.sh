@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Install software
+apt-get install i2c-tools
+apt-get install mpd mpc
+apt-get install lirc
+apt-get install pipenv
+
 # Update config.txt
 cat boot/config.txt >> /boot/config.txt
 
