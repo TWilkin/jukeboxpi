@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "JukeboxPi installer"
+
 # Install software
 apt-get install i2c-tools
 apt-get install mpd mpc mpdscribble
@@ -23,3 +25,5 @@ mkdir /opt/jukebox
 cp -r lcd/* /opt/jukebox
 cat lcd.sh >> /etc/rc.local
 chown -R pi.pi /opt/jukebox
+
+echo "Install complete, restart your Pi!"
