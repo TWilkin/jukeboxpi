@@ -1,0 +1,15 @@
+
+# Enable I2C
+dtparam=i2c_arm=on
+
+# HDMI Audio
+dtparam=audio=on
+
+# Digi+ Audio
+dtoverlay=iqaudio-digi-wm8804-audio
+
+# LIRC sensor
+dtoverlay=gpio-ir,gpio_pin=7
+
+# HDMI CEC Name
+cec_osd_name=JukeboxPi

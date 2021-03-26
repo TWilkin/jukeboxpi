@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Update config.txt
+cat boot/config.txt >> /boot/config.txt
+
 # Add LIRC configuration
 cp lirc/* /etc/lirc/
 rm /etc/lirc/lircd.conf.d/*.conf
