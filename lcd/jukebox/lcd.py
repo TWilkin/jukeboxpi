@@ -160,15 +160,6 @@ class LCD(object):
                             self.__lcd.move_left()
                             current.offset += 1
 
-                            if current.offset == max(len(current.top), len(current.bottom)) - self.__lcd.columns + 2:
-                                current.direction = False
-                        else:
-                            self.__lcd.move_right()
-                            current.offset -= 1
-
-                            if current.offset == -2:
-                                current.direction = True
-
                 await asyncio.sleep(0.5)
 
         loop = asyncio.new_event_loop()
