@@ -2,12 +2,16 @@
 
 # Install software
 apt-get install i2c-tools
-apt-get install mpd mpc
+apt-get install mpd mpc mpdscribble
 apt-get install lirc
 apt-get install pipenv
 
 # Update config.txt
 cat boot/config.txt >> /boot/config.txt
+
+# Add MPD configuration
+usermod -a -G i2c mpd
+cp mpd/mpd.conf /etc/mpd.conf
 
 # Add LIRC configuration
 cp lirc/* /etc/lirc/
