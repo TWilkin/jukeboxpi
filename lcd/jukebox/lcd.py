@@ -94,10 +94,7 @@ class LCD(object):
         top = self.__fix_length(top)
         bottom = self.__fix_length(bottom)
 
-        if max(len(top), len(bottom)) > self.__lcd.columns:
-            scroll = True
-        else:
-            scroll = False
+        scroll = max(len(top), len(bottom)) > self.__lcd.columns
 
         with self.__lock:
             self.__message[page] = LCDPageData(
@@ -155,8 +152,12 @@ class LCD(object):
             if not self.__lcd.display:
                 self.turn_on()
 
+            top = self.__message[self.__current_page].top[:16]
+            bottom = self.__message[self.__current_page].bottom[:16]
+            self.__message[self.__current_page].offset = 0
+
             self.__lcd.cursor_position(0, 0)
-            self.__lcd.message = f'{self.__message[self.__current_page].top}\n{self.__message[self.__current_page].bottom}'
+            self.__lcd.message = f'{top}\n{bottom}'
 
     def __centre(self, line: str):
         diff = (self.__lcd.columns - len(line)) // 2
@@ -164,25 +165,39 @@ class LCD(object):
         return line
 
     def __fix_length(self, line: str):
-        buffer = 40 - 2 - len('...')
+        if len(line) > 16:
+            line = f'{line}      '
 
-        # ensure we don't overflow per-line character buffer
-        if len(line) > buffer:
-            line = f'{line[:buffer]}...'
+        line = f'{line:<16}'
 
         return line
 
     def __scroll(self):
+        def append_next_char(page: LCDPageData, row: LCDRow):
+            message = page.top if row == LCDRow.TOP else page.bottom
+
+            message_offset = (page.offset + 16) % len(message)
+            lcd_offset = (page.offset + self.__lcd.columns) % 40
+
+            self.__lcd.columns = 40
+            self.__lcd.cursor_position(lcd_offset, row.value)
+            self.__lcd._write8(
+                ord(message[message_offset]), True)
+            self.__lcd.columns = 16
+
         async def scroll():
             while True:
                 with self.__lock:
                     current = self.__message[self.__current_page]
 
                     if current.scroll:
+                        append_next_char(current, LCDRow.TOP)
+                        append_next_char(current, LCDRow.BOTTOM)
+
                         self.__lcd.move_left()
                         current.offset += 1
 
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.3)
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
