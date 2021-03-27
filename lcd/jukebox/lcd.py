@@ -5,6 +5,7 @@ import busio
 from adafruit_character_lcd.character_lcd_rgb_i2c import Character_LCD_RGB_I2C
 from enum import Enum
 from threading import Lock, Thread
+from unidecode import unidecode
 
 
 class LCDRow(Enum):
@@ -27,8 +28,8 @@ class LCDPageData(object):
     offset: int
 
     def __init__(self, top: str = ' ' * 16, bottom: str = ' ' * 16, scroll: bool = True):
-        self.top = top
-        self.bottom = bottom
+        self.top = unidecode(top)
+        self.bottom = unidecode(bottom)
         self.scroll = scroll
         self.offset = 0
 
