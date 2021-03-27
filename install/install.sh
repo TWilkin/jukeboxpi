@@ -18,7 +18,8 @@ cp mpd/mpd.conf /etc/mpd.conf
 # Add LIRC configuration
 cp lirc/* /etc/lirc/
 rm /etc/lirc/lircd.conf.d/*.conf
-wget -O /etc/lirc/lircd.conf.d/ https://sourceforge.net/p/lirc-remotes/code/ci/master/tree/remotes/apple/A1156.lircd.conf
+wget -O /etc/lirc/lircd.conf.d/A1156.lircd.conf https://sourceforge.net/p/lirc-remotes/code/ci/master/tree/remotes/apple/A1156.lircd.conf?format=raw
+systemctl enable irexec
 
 # Add Python LCD
 mkdir /opt/jukebox
