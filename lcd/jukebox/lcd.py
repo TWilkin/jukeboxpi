@@ -67,9 +67,13 @@ class LCDPageData(object):
     __lcd_offset: int
 
     def __init__(self, top: str = ' ' * 16, bottom: str = ' ' * 16):
-        self.top = top
-        self.bottom = bottom
-        self.__scroll = max(len(top), len(bottom)) > 16
+        self.__top = Row(top)
+        self.__bottom = Row(bottom)
+        self.reset()
+
+    @property
+    def should_scroll(self):
+        return self.__scroll
 
     @property
     def offset(self):
@@ -82,7 +86,7 @@ class LCDPageData(object):
     @top.setter
     def top(self, new_message: str):
         self.__top = Row(new_message)
-        self.__lcd_offset = 16
+        self.reset()
 
     @property
     def bottom(self):
@@ -91,17 +95,18 @@ class LCDPageData(object):
     @bottom.setter
     def bottom(self, new_message: str):
         self.__bottom = Row(new_message)
-        self.__lcd_offset = 16
+        self.reset()
 
     def scroll(self):
         self.__lcd_offset += 1
 
-        # reset when we hit the end of the bugger
+        # reset when we hit the end of the buffer
         if self.__lcd_offset >= 40:
             self.__lcd_offset = 0
 
     def reset(self):
         self.__lcd_offset = 16
+        self.__scroll = max(len(self.__top), len(self.__bottom)) > 16
 
 
 class LCD(object):
@@ -175,7 +180,7 @@ class LCD(object):
         self.write_message(page, top, bottom)
 
     def overwrite(self, page: int, row: LCDRow, text: str):
-        new_row = Row(text)
+        text = f'{unidecode(text):<15}'
 
         with self.__lock:
             if self.__current_page == page:
@@ -183,16 +188,16 @@ class LCD(object):
 
                 # update only the characters that have changed
                 original_len = len(message)
-                new_len = len(new_row)
+                new_len = len(text)
                 for i in range(max(original_len, new_len)):
                     char = ' '
                     changed = True
 
                     if i < new_len:
-                        char = new_row.message[i]
+                        char = text[i]
 
                         if i < original_len:
-                            changed = message[i] != char
+                            changed = message.message[i] != char
 
                     if changed:
                         self.__lcd.cursor_position(i, row.value)
@@ -200,9 +205,9 @@ class LCD(object):
 
             # update the message
             if row == LCDRow.TOP:
-                self.__message[page].top = new_row
+                self.__message[page].top = text
             else:
-                self.__message[page].bottom = new_row
+                self.__message[page].bottom = text
 
     def overwrite_centre(self, page: int, row: LCDRow, text: str):
         text = self.__centre(text)
@@ -222,7 +227,7 @@ class LCD(object):
             self.__lcd.message = f'{top}\n{bottom}'
 
     def __centre(self, line: str):
-        diff = (self.__lcd.columns - len(line)) // 2
+        diff = (16 - len(line)) // 2
         line = (' ' * diff) + line
         return line
 
@@ -242,7 +247,7 @@ class LCD(object):
                 with self.__lock:
                     current = self.__message[self.__current_page]
 
-                    if current.scroll:
+                    if current.should_scroll:
                         append_next_char(current, LCDRow.TOP)
                         append_next_char(current, LCDRow.BOTTOM)
 
