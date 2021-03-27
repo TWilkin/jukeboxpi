@@ -32,6 +32,9 @@ class Row(object):
     def __len__(self):
         return self.__length
 
+    def __str__(self):
+        return f'{self.__offset} [{self.__message}]'
+
     @property
     def message(self):
         return self.__message
@@ -41,13 +44,13 @@ class Row(object):
         new_message = unidecode(new_message)
 
         if len(new_message) > 16:
-            new_message = f'{new_message}      '
+            new_message = f'{new_message}        '
 
         new_message = f'{new_message:<16}'
 
         self.__message = new_message
         self.__length = len(self.__message)
-        self.__offset = 16
+        self.__offset = min(16, self.__length - 1)
 
     @property
     def next_char(self):
@@ -235,12 +238,12 @@ class LCD(object):
         def append_next_char(page: LCDPageData, row: LCDRow):
             page_row = page.top if row == LCDRow.TOP else page.bottom
 
-            page_row.scroll()
-
             self.__lcd.columns = 40
             self.__lcd.cursor_position(page.offset, row.value)
             self.__lcd._write8(ord(page_row.next_char), True)
             self.__lcd.columns = 16
+
+            page_row.scroll()
 
         async def scroll():
             while True:
